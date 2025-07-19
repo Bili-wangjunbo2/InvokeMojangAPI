@@ -7,7 +7,7 @@
 - ✅ 获取UUID
 - ✅ 获取皮肤
 - ✅ 获取披风
-  
+ 
 ## 🚀 快速开始
 
 ### 环境要求
@@ -15,7 +15,9 @@
 - [.NET 8 SDK](https://dotnet.microsoft.com/)
 - Windows 10+
 
-### 克隆项目
+### 示例代码
 
 ```bash
-git clone https://github.com/Bili-wangjunbo2/InvokeMojangAPI.git
+MojangAPI api = new MojangAPI();
+Console.WriteLine(await api.GetPlayerUUID("Bili_wangjunbo2"));
+Console.WriteLine(await api.GetPlayerCape(await api.GetPlayerUUID("Bili_wangjunbo2")));
