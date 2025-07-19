@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using static System.Net.WebRequestMethods;
 using System.Text.Json;
 
-namespace MojangAPILibrary1
+namespace InvokeMojangAPI
 {
 
     sealed class MojangProfileID
@@ -27,7 +27,7 @@ namespace MojangAPILibrary1
         public string name { get; set; }
         public string value { get; set; }
     }
-    public class MojangSkinInfo
+    sealed class MojangSkinInfo
     {
         public long timestamp { get; set; }
         public string profileId { get; set; }
@@ -35,18 +35,18 @@ namespace MojangAPILibrary1
         public Textures textures { get; set; }
     }
 
-    public class Textures
+    sealed class Textures
     {
         public Skin SKIN { get; set; }
         public Cape CAPE { get; set; }
     }
 
-    public class Skin
+    sealed class Skin
     {
         public string url { get; set; }
     }
 
-    public class Cape
+    sealed class Cape
     {
         public string url { get; set; }
     }
@@ -65,7 +65,7 @@ namespace MojangAPILibrary1
         public async Task<string> GetPlayerUUID(string playerName)
         {          
             var client = new HttpClient();
-            var url = "https://api.mojang.com/users/profiles/minecraft/" + playerName;
+            var url = $"https://api.mojang.com/users/profiles/minecraft/{playerName}";
             var response = await client.GetAsync(url);
             string result = await response.Content.ReadAsStringAsync();
             MojangProfileID profileId = JsonSerializer.Deserialize<MojangProfileID>(result);
@@ -76,30 +76,54 @@ namespace MojangAPILibrary1
 
 
         /// <summary>
+        /// 获取玩家皮肤
+        /// </summary>
+        /// <param name="playerUuid"></param>
+        /// <returns></returns> 
+        public async Task<string> GetPlayerSkin(string uuid)
+        {
+            var client = new HttpClient();
+            string url = $"https://sessionserver.mojang.com/session/minecraft/profile/{uuid}";
+            var response = await client.GetAsync(url);
+            string result = await response.Content.ReadAsStringAsync();
+
+            var profile = JsonSerializer.Deserialize<MojangProfileValue>(result);
+            string encoded = profile?.properties?.Find(p => p.name == "textures")?.value;
+
+            if (string.IsNullOrEmpty(encoded))
+            {
+                return "未找到皮肤数据";
+            }                
+            string decodedJson = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
+            var skinInfo = JsonSerializer.Deserialize<MojangSkinInfo>(decodedJson);
+
+            return skinInfo?.textures?.SKIN?.url ?? "无皮肤";
+        }
+
+        /// <summary>
         /// 获取玩家披风
         /// </summary>
         /// <param name="playerUuid"></param>
-        /// <returns></returns>
-        public async Task<string> GetSkinUrl(string playerUuid)
+        /// <returns></returns> 
+        public async Task<string> GetPlayerCape(string uuid)
         {
             var client = new HttpClient();
-            var url = $"https://sessionserver.mojang.com/session/minecraft/profile/{playerUuid}";
+            string url = $"https://sessionserver.mojang.com/session/minecraft/profile/{uuid}";
             var response = await client.GetAsync(url);
-            var json = await response.Content.ReadAsStringAsync();
+            string result = await response.Content.ReadAsStringAsync();
 
-            var profile = JsonSerializer.Deserialize<MojangProfileValue>(json);
-            string encodedValue = profile?.properties?.Find(p => p.name == "textures")?.value;
+            var profile = JsonSerializer.Deserialize<MojangProfileValue>(result);
+            string encoded = profile?.properties?.Find(p => p.name == "textures")?.value;
 
-            if (string.IsNullOrEmpty(encodedValue)) return "未找到 skin 数据";
-
-            // 1️⃣ Base64 解码
-            byte[] bytes = Convert.FromBase64String(encodedValue);
-            string decodedJson = Encoding.UTF8.GetString(bytes);
-
-            // 2️⃣ 反序列化内部 JSON
+            if (string.IsNullOrEmpty(encoded))
+            {
+                return "未找到披风数据";
+            }
+                
+            string decodedJson = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
             var skinInfo = JsonSerializer.Deserialize<MojangSkinInfo>(decodedJson);
 
-            return $"皮肤 URL：{skinInfo.textures?.SKIN?.url ?? "无"}\n披风 URL：{skinInfo.textures?.CAPE?.url ?? "无"}";
+            return skinInfo?.textures?.CAPE?.url ?? "无披风";
         }
 
 
