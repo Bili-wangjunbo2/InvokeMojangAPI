@@ -18,5 +18,4 @@
 ### 克隆项目
 
 ```bash
-git clone https://github.com/your-username/your-project.git
-cd your-project
+git clone https://github.com/Bili-wangjunbo2/InvokeMojangAPI.git
